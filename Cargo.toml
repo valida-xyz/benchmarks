@@ -1,23 +1,6 @@
-[package]
-name = "valida-benchmarks"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[profile.release]
-opt-level = 3
-overflow-checks = false
-lto = true
-
-[dependencies]
-valida-basic = { path = "../valida/basic" }
-valida-machine = { path = "../valida/machine" }
-valida-alu-u32 = { path = "../valida/alu_u32" }
-valida-bus = { path = "../valida/bus" }
-valida-cpu = { path = "../valida/cpu" }
-valida-derive = { path = "../valida/derive" }
-valida-memory = { path = "../valida/memory" }
-valida-range = { path = "../valida/range" }
-
-p3-maybe-rayon = { path = "../Plonky3/maybe-rayon" }
+[workspace]
+resolver = "2"
+members = [
+    "programs",
+    "runner",
+]

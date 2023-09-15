@@ -1,0 +1,15 @@
+[package]
+name = "valida-benchmark-programs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+valida-basic = { path = "../../valida/basic" }
+valida-alu-u32 = { path = "../../valida/alu_u32" }
+valida-bus = { path = "../../valida/bus" }
+valida-cpu = { path = "../../valida/cpu" }
+valida-derive = { path = "../../valida/derive" }
+valida-machine = { path = "../../valida/machine" }
+valida-memory = { path = "../../valida/memory" }
+valida-range = { path = "../../valida/range" }
+valida-program = { path = "../../valida/program" }
