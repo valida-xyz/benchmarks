@@ -1,16 +1,13 @@
-use std::time::Instant;
-
 use valida_alu_u32::add::Add32Instruction;
 use valida_basic::BasicMachine;
 use valida_cpu::{
     BeqInstruction, BneInstruction, Imm32Instruction, JalInstruction, JalvInstruction,
-    MachineWithCpuChip, Store32Instruction,
+    StopInstruction, Store32Instruction,
 };
-use valida_machine::{Instruction, InstructionWord, Machine, Operands, ProgramROM, PublicMemory};
+use valida_machine::{ExtensionField, Instruction, InstructionWord, Operands, PrimeField64};
 
-/// Compute the 100,000th Fibonacci number
-fn main() {
-    let start = Instant::now();
+pub fn generate_fibonacci_program<Val: PrimeField64, Challenge: ExtensionField<Val>>(
+) -> Vec<InstructionWord<i32>> {
     let mut program = vec![];
 
     // Label locations
@@ -33,35 +30,36 @@ fn main() {
     //...
     program.extend([
         InstructionWord {
-            opcode: <Imm32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Imm32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-4, 0, 0, 0, 0]),
         },
         InstructionWord {
-            opcode: <Imm32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Imm32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-8, 0, 1, 86, 160]),
+            //operands: Operands([-8, 0, 0x03, 0xD0, 0x90]),
         },
         InstructionWord {
-            opcode: <Store32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Store32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([0, -16, -8, 0, 0]),
         },
         InstructionWord {
-            opcode: <Imm32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Imm32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-20, 0, 0, 0, 28]),
         },
         InstructionWord {
-            opcode: <JalInstruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <JalInstruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-28, fib_bb0, -28, 0, 0]),
         },
         InstructionWord {
-            opcode: <Store32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Store32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([0, -12, -24, 0, 0]),
         },
         InstructionWord {
-            opcode: <Store32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Store32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([0, 4, -12, 0, 0]),
         },
         InstructionWord {
-            opcode: 0,
+            opcode: <StopInstruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands::default(),
         },
     ]);
@@ -75,23 +73,23 @@ fn main() {
     //	beq	.LBB0_1, 0(fp), 0(fp)
     program.extend([
         InstructionWord {
-            opcode: <Store32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Store32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([0, -4, 12, 0, 0]),
         },
         InstructionWord {
-            opcode: <Imm32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Imm32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-8, 0, 0, 0, 0]),
         },
         InstructionWord {
-            opcode: <Imm32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Imm32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-12, 0, 0, 0, 1]),
         },
         InstructionWord {
-            opcode: <Imm32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Imm32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-16, 0, 0, 0, 0]),
         },
         InstructionWord {
-            opcode: <BeqInstruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <BeqInstruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([fib_bb0_1, 0, 0, 0, 0]),
         },
     ]);
@@ -101,11 +99,11 @@ fn main() {
     //	beq	.LBB0_4, 0(fp), 0(fp)
     program.extend([
         InstructionWord {
-            opcode: <BneInstruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <BneInstruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([fib_bb0_2, -16, -4, 0, 0]),
         },
         InstructionWord {
-            opcode: <BeqInstruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <BeqInstruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([fib_bb0_4, 0, 0, 0, 0]),
         },
     ]);
@@ -117,19 +115,19 @@ fn main() {
     //	beq	.LBB0_3, 0(fp), 0(fp)
     program.extend([
         InstructionWord {
-            opcode: <Add32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Add32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-20, -8, -12, 0, 0]),
         },
         InstructionWord {
-            opcode: <Store32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Store32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([0, -8, -12, 0, 0]),
         },
         InstructionWord {
-            opcode: <Store32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Store32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([0, -12, -20, 0, 0]),
         },
         InstructionWord {
-            opcode: <BeqInstruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <BeqInstruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([fib_bb0_3, 0, 0, 0, 0]),
         },
     ]);
@@ -139,11 +137,11 @@ fn main() {
     //	beq	.LBB0_1, 0(fp), 0(fp)
     program.extend([
         InstructionWord {
-            opcode: <Add32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Add32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-16, -16, 1, 0, 1]),
         },
         InstructionWord {
-            opcode: <BeqInstruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <BeqInstruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([fib_bb0_1, 0, 0, 0, 0]),
         },
     ]);
@@ -153,25 +151,14 @@ fn main() {
     //	jalv	-4(fp), 0(fp), 8(fp)
     program.extend([
         InstructionWord {
-            opcode: <Store32Instruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <Store32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([0, 4, -8, 0, 0]),
         },
         InstructionWord {
-            opcode: <JalvInstruction as Instruction<BasicMachine>>::OPCODE,
+            opcode: <JalvInstruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
             operands: Operands([-4, 0, 8, 0, 0]),
         },
     ]);
 
-    let mut machine = BasicMachine::default();
-    let rom = ProgramROM::new(program);
-    let public_mem = PublicMemory::default();
-    machine.cpu_mut().fp = 0x1000;
-    machine.cpu_mut().save_register_state(); // TODO: Initial register state should be saved
-                                             // automatically by the machine, not manually here
-
-    machine.run(rom, public_mem);
-    machine.prove();
-
-    let duration = start.elapsed();
-    println!("Time elapsed in milliseconds: {:?}", duration.as_millis());
+    program
 }
