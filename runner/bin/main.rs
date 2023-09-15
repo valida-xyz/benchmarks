@@ -24,6 +24,8 @@ use p3_merkle_tree::MerkleTreeMmcs;
 use p3_poseidon::Poseidon;
 use p3_symmetric::compression::CompressionFunctionFromHasher;
 use p3_symmetric::hasher::SerializingHasher32;
+use rand::distributions::Standard;
+use rand::prelude::Distribution;
 use rand::thread_rng;
 
 #[derive(Parser)]
@@ -111,25 +113,9 @@ fn new_uni_stark_config<
     PackedChallenge: PackedField + AbstractExtensionField<PackedDom>,
 >(
     options: UniOptions,
-) -> StarkConfigImpl<
-    Val,
-    Challenge,
-    PackedChallenge,
-    FriPCS<
-        MyFriConfig<
-            Val,
-            Dom,
-            Challenge,
-            Quotient<Dom, Challenge, MyMmcs<Val, MyHash<Val>, MyCompress<Val, MyHash<Val>>>>,
-            MyMmcs<Val, MyHash<Val>, MyCompress<Val, MyHash<Val>>>,
-            Chal<Val>,
-        >,
-        MyMmcs<Val, MyHash<Val>, MyCompress<Val, MyHash<Val>>>,
-        Chal<Val>,
-    >,
-    MyDft,
-    Chal<Val>,
-> {
+) -> impl StarkConfig
+    where Standard: Distribution<Val>
+{
     // TODO: Pass these in as arguments
     let hash = MyHash::new(Keccak256Hash {});
     let compress = MyCompress::new(hash);
