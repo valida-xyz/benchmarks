@@ -1,16 +1,15 @@
-use std::time::Instant;
-
-use valida_alu_u32::add::Add32Instruction;
+use valida_alu_u32::add::{Add32Instruction, MachineWithAdd32Chip};
 use valida_basic::BasicMachine;
 use valida_cpu::{
     BeqInstruction, BneInstruction, Imm32Instruction, JalInstruction, JalvInstruction,
-    MachineWithCpuChip, Store32Instruction,
+    MachineWithCpuChip, StopInstruction, Store32Instruction,
 };
-use valida_machine::{Instruction, InstructionWord, Machine, Operands, ProgramROM, PublicMemory};
+use valida_machine::config::{StarkConfig, StarkConfigImpl};
+use valida_machine::{Instruction, InstructionWord, Machine, Operands, ProgramROM, Word};
+use valida_memory::MachineWithMemoryChip;
+use valida_program::MachineWithProgramChip;
 
-/// Compute the 100,000th Fibonacci number
-fn main() {
-    let start = Instant::now();
+pub fn generate_fibonacci_program() -> Vec<InstructionWord<i32>> {
     let mut program = vec![];
 
     // Label locations
@@ -38,7 +37,8 @@ fn main() {
         },
         InstructionWord {
             opcode: <Imm32Instruction as Instruction<BasicMachine>>::OPCODE,
-            operands: Operands([-8, 0, 1, 86, 160]),
+            //operands: Operands([-8, 0, 1, 86, 160]),
+            operands: Operands([-8, 0, 0x03, 0xD0, 0x90]),
         },
         InstructionWord {
             opcode: <Store32Instruction as Instruction<BasicMachine>>::OPCODE,
@@ -61,7 +61,7 @@ fn main() {
             operands: Operands([0, 4, -12, 0, 0]),
         },
         InstructionWord {
-            opcode: 0,
+            opcode: <StopInstruction as Instruction<BasicMachine>>::OPCODE,
             operands: Operands::default(),
         },
     ]);
@@ -162,16 +162,5 @@ fn main() {
         },
     ]);
 
-    let mut machine = BasicMachine::default();
-    let rom = ProgramROM::new(program);
-    let public_mem = PublicMemory::default();
-    machine.cpu_mut().fp = 0x1000;
-    machine.cpu_mut().save_register_state(); // TODO: Initial register state should be saved
-                                             // automatically by the machine, not manually here
-
-    machine.run(rom, public_mem);
-    machine.prove();
-
-    let duration = start.elapsed();
-    println!("Time elapsed in milliseconds: {:?}", duration.as_millis());
+    program
 }

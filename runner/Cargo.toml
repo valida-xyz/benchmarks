@@ -1,0 +1,40 @@
+[package]
+name = "valida-benchmark-runner"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+debug = true
+opt-level = 3
+overflow-checks = false
+
+[[bin]]
+name = "valida-bench"
+path = "bin/main.rs"
+
+[dependencies]
+valida-benchmark-programs = { path = "../programs" }
+valida-basic = { path = "../../valida/basic" }
+valida-alu-u32 = { path = "../../valida/alu_u32" }
+valida-bus = { path = "../../valida/bus" }
+valida-cpu = { path = "../../valida/cpu" }
+valida-derive = { path = "../../valida/derive" }
+valida-machine = { path = "../../valida/machine" }
+valida-memory = { path = "../../valida/memory" }
+valida-range = { path = "../../valida/range" }
+valida-program = { path = "../../valida/program" }
+
+p3-baby-bear = { path = "../../Plonky3/baby-bear" }
+p3-challenger = { path = "../../Plonky3/challenger" }
+p3-dft = { path = "../../Plonky3/dft" }
+p3-field = { path = "../../Plonky3/field" }
+p3-fri = { path = "../../Plonky3/fri" }
+p3-keccak = { path = "../../Plonky3/keccak" }
+p3-ldt = { path = "../../Plonky3/ldt" }
+p3-mds = { path = "../../Plonky3/mds" }
+p3-merkle-tree = { path = "../../Plonky3/merkle-tree" }
+p3-poseidon = { path = "../../Plonky3/poseidon" }
+p3-symmetric = { path = "../../Plonky3/symmetric" }
+
+rand = "0.8.5"
+clap = { version = "4.3.19", features = ["derive"] }
