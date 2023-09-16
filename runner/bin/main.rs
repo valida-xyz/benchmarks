@@ -26,6 +26,10 @@ use p3_symmetric::hasher::SerializingHasher32;
 use rand::distributions::Standard;
 use rand::prelude::Distribution;
 use rand::thread_rng;
+use tracing_forest::ForestLayer;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Registry};
 
 #[derive(Parser)]
 struct Cli {
@@ -176,6 +180,11 @@ where
 }
 
 fn main() {
+    Registry::default()
+        .with(EnvFilter::from_default_env())
+        .with(ForestLayer::default())
+        .init();
+
     let args = Cli::parse();
 
     println!("Benchmarking with the following parameters:");
