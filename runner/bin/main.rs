@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use std::fs;
 use std::time::Instant;
 use valida_basic::BasicMachine;
 use valida_benchmark_programs::{
@@ -177,6 +178,7 @@ where
     machine.prove(&config);
     let duration = start.elapsed();
     println!("Time elapsed in milliseconds: {:?}", duration.as_millis());
+    fs::write("output.txt", duration.as_millis().to_string()).expect("Unable to write file");
 }
 
 fn main() {
@@ -194,7 +196,7 @@ fn main() {
 
     match args.prover_type {
         ProverType::Univariate(options) => {
-            bench_uni(&options, args.program, 10);
+            bench_uni(&options, args.program, args.stack_height as usize);
         }
         ProverType::Multivariate(options) => {
             bench_multi(&options, args.program, 10);
