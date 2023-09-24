@@ -28,6 +28,7 @@ use tracing_forest::ForestLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry};
+use tracing_subscriber::filter::LevelFilter;
 
 #[derive(Parser)]
 struct Cli {
@@ -176,8 +177,12 @@ where
 }
 
 fn main() {
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
+
     Registry::default()
-        .with(EnvFilter::from_default_env())
+        .with(env_filter)
         .with(ForestLayer::default())
         .init();
 
