@@ -13,9 +13,7 @@ use valida_program::MachineWithProgramChip;
 use p3_baby_bear::BabyBear;
 use p3_challenger::DuplexChallenger;
 use p3_dft::Radix2Bowers;
-use p3_field::{
-    AbstractExtensionField, ExtensionField, Field, PackedField, PrimeField32, TwoAdicField,
-};
+use p3_field::{AbstractExtensionField, ExtensionField, PackedField, PrimeField32, TwoAdicField};
 use p3_fri::{FriBasedPcs, FriConfigImpl, FriLdt};
 use p3_keccak::Keccak256Hash;
 use p3_mds::coset_mds::CosetMds;
@@ -41,7 +39,7 @@ struct Cli {
 
     /// Stack height (which is also the initial frame pointer value)
     #[arg(long, default_value = "16777216")]
-    stack_height: u32,
+    stack_height: usize,
 }
 
 // TODO: Handle non-unit variants with Clap macro
@@ -106,11 +104,11 @@ type MyHash<Val> = SerializingHasher32<Val, Keccak256Hash>;
 type MyCompress<Val, MyHash> = CompressionFunctionFromHasher<Val, MyHash, 2, 8>;
 
 fn new_uni_stark_config<
-    Val: Field + PrimeField32 + TwoAdicField,
+    Val: PrimeField32 + TwoAdicField,
     Dom: ExtensionField<Val> + TwoAdicField,
-    PackedDom: PackedField,
-    Challenge: PackedField + ExtensionField<Dom> + ExtensionField<Val> + TwoAdicField,
-    PackedChallenge: PackedField + AbstractExtensionField<PackedDom>,
+    PackedDom: PackedField<Scalar = Dom>,
+    Challenge: ExtensionField<Val> + ExtensionField<Dom> + TwoAdicField,
+    PackedChallenge: PackedField<Scalar = Challenge> + AbstractExtensionField<PackedDom>,
 >(
     options: &UniOptions,
 ) -> impl StarkConfig<Val = Val>
@@ -129,9 +127,7 @@ where
     let mds16 = Mds16::default();
     let perm16 = Perm16::new_from_rng(4, 22, mds16, &mut thread_rng()); // TODO: Use deterministic RNG
     let challenger = DuplexChallenger::new(perm16);
-    let config = StarkConfigImpl::new(pcs, dft, challenger);
-
-    config
+    StarkConfigImpl::new(pcs, dft, challenger)
 }
 
 fn bench_uni(options: &UniOptions, example_program: ExampleProgram, stack_height: usize) {
@@ -194,10 +190,10 @@ fn main() {
 
     match args.prover_type {
         ProverType::Univariate(options) => {
-            bench_uni(&options, args.program, 10);
+            bench_uni(&options, args.program, args.stack_height);
         }
         ProverType::Multivariate(options) => {
-            bench_multi(&options, args.program, 10);
+            bench_multi(&options, args.program, args.stack_height);
         }
     }
 }
