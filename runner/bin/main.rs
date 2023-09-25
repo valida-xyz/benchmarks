@@ -142,7 +142,7 @@ fn bench_uni(options: &UniOptions, example_program: ExampleProgram, stack_height
             let config = new_uni_stark_config::<Val, Dom, Dom, Challenge, PackedChallenge>(options);
             prove_program(example_program, stack_height, config);
         }
-        _ => unimplemented!(),
+        _ => panic!("That set of options is not currently supported"),
     };
 }
 
