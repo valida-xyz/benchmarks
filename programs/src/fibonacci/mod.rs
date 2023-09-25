@@ -8,6 +8,8 @@ use valida_machine::{ExtensionField, Instruction, InstructionWord, Operands, Pri
 
 pub fn generate_fibonacci_program<Val: PrimeField64, Challenge: ExtensionField<Val>>(
 ) -> Vec<InstructionWord<i32>> {
+    let n: u32 = 100_000;
+    let n_bytes = n.to_be_bytes();
     let mut program = vec![];
 
     // Label locations
@@ -35,8 +37,13 @@ pub fn generate_fibonacci_program<Val: PrimeField64, Challenge: ExtensionField<V
         },
         InstructionWord {
             opcode: <Imm32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
-            operands: Operands([-8, 0, 1, 86, 160]),
-            //operands: Operands([-8, 0, 0x03, 0xD0, 0x90]),
+            operands: Operands([
+                -8,
+                n_bytes[0] as i32,
+                n_bytes[1] as i32,
+                n_bytes[2] as i32,
+                n_bytes[3] as i32,
+            ]),
         },
         InstructionWord {
             opcode: <Store32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
