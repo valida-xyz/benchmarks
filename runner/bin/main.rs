@@ -17,7 +17,7 @@ use p3_field::{AbstractExtensionField, ExtensionField, PackedField, PrimeField32
 use p3_fri::{FriBasedPcs, FriConfigImpl, FriLdt};
 use p3_keccak::Keccak256Hash;
 use p3_mds::coset_mds::CosetMds;
-use p3_merkle_tree::MerkleTreeMmcs;
+use p3_merkle_tree::FieldMerkleTreeMmcs;
 use p3_poseidon::Poseidon;
 use p3_symmetric::compression::CompressionFunctionFromHasher;
 use p3_symmetric::hasher::SerializingHasher32;
@@ -25,10 +25,10 @@ use rand::distributions::Standard;
 use rand::prelude::Distribution;
 use rand::thread_rng;
 use tracing_forest::ForestLayer;
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry};
-use tracing_subscriber::filter::LevelFilter;
 
 #[derive(Parser)]
 struct Cli {
@@ -98,7 +98,7 @@ enum HashFunction {
 // Univariate types
 type MyDft = Radix2Bowers;
 type FriPCS<MyFriConfig, MyMmcs, Chal> = FriBasedPcs<MyFriConfig, MyMmcs, MyDft, Chal>;
-type MyMmcs<Val, MyHash, MyCompress> = MerkleTreeMmcs<Val, [Val; 8], MyHash, MyCompress>;
+type MyMmcs<Val, MyHash, MyCompress> = FieldMerkleTreeMmcs<Val, MyHash, MyCompress, 8>;
 type Mds16<Val> = CosetMds<Val, 16>;
 type Perm16<Val> = Poseidon<Val, Mds16<Val>, 16, 5>;
 type MyHash<Val> = SerializingHasher32<Val, Keccak256Hash>;
@@ -117,7 +117,7 @@ where
     Standard: Distribution<Val>,
 {
     // TODO: Pass these in as arguments
-    let hash = MyHash::new(Keccak256Hash {});
+    let hash: MyHash<Val> = MyHash::new(Keccak256Hash {});
     let compress = MyCompress::new(hash);
 
     let mmcs = MyMmcs::new(hash, compress);
