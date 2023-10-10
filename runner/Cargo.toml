@@ -3,11 +3,6 @@ name = "valida-benchmark-runner"
 version = "0.1.0"
 edition = "2021"
 
-[profile.release]
-debug = true
-opt-level = 3
-overflow-checks = false
-
 [[bin]]
 name = "valida-bench"
 path = "bin/main.rs"
