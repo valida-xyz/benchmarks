@@ -4,3 +4,6 @@ members = [
     "programs",
     "runner",
 ]
+
+[profile.release]
+lto = "thin"
