@@ -185,10 +185,10 @@ fn main() {
 
     match args.prover_type {
         ProverType::Univariate(options) => {
-            bench_uni(&options, args.program, 10);
+            bench_uni(&options, args.program, 100_000);
         }
         ProverType::Multivariate(options) => {
-            bench_multi(&options, args.program, 10);
+            bench_multi(&options, args.program, 100_000);
         }
     }
 }

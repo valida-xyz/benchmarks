@@ -35,7 +35,8 @@ pub fn generate_fibonacci_program<Val: PrimeField64, Challenge: ExtensionField<V
         },
         InstructionWord {
             opcode: <Imm32Instruction as Instruction<BasicMachine<Val, Challenge>>>::OPCODE,
-            operands: Operands([-8, 0, 1, 86, 160]),
+            operands: Operands([-8, 0, 0, 0x27, 0x10]),
+            //operands: Operands([-8, 0, 1, 86, 160]),
             //operands: Operands([-8, 0, 0x03, 0xD0, 0x90]),
         },
         InstructionWord {

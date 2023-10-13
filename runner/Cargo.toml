@@ -27,6 +27,7 @@ valida-program = { path = "../../valida/program" }
 p3-baby-bear = { path = "../../Plonky3/baby-bear" }
 p3-challenger = { path = "../../Plonky3/challenger" }
 p3-dft = { path = "../../Plonky3/dft" }
+p3-blake3 = { path = "../../Plonky3/blake3" }
 p3-field = { path = "../../Plonky3/field" }
 p3-fri = { path = "../../Plonky3/fri" }
 p3-keccak = { path = "../../Plonky3/keccak" }
