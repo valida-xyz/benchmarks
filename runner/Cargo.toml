@@ -3,11 +3,6 @@ name = "valida-benchmark-runner"
 version = "0.1.0"
 edition = "2021"
 
-[profile.release]
-debug = true
-opt-level = 3
-overflow-checks = false
-
 [[bin]]
 name = "valida-bench"
 path = "bin/main.rs"
@@ -37,5 +32,7 @@ p3-merkle-tree = { path = "../../Plonky3/merkle-tree" }
 p3-poseidon = { path = "../../Plonky3/poseidon" }
 p3-symmetric = { path = "../../Plonky3/symmetric" }
 
-rand = "0.8.5"
 clap = { version = "4.3.19", features = ["derive"] }
+rand = "0.8.5"
+tracing-subscriber = { version = "0.3.17", features = ["std", "env-filter"] }
+tracing-forest = { version = "0.1.6", features = ["ansi", "smallvec"] }

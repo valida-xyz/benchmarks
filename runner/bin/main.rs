@@ -13,19 +13,22 @@ use valida_program::MachineWithProgramChip;
 use p3_baby_bear::BabyBear;
 use p3_challenger::DuplexChallenger;
 use p3_dft::Radix2Bowers;
-use p3_field::{
-    AbstractExtensionField, ExtensionField, Field, PackedField, PrimeField32, TwoAdicField,
-};
+use p3_field::{AbstractExtensionField, ExtensionField, PackedField, PrimeField32, TwoAdicField};
 use p3_fri::{FriBasedPcs, FriConfigImpl, FriLdt};
 use p3_keccak::Keccak256Hash;
 use p3_mds::coset_mds::CosetMds;
-use p3_merkle_tree::MerkleTreeMmcs;
+use p3_merkle_tree::FieldMerkleTreeMmcs;
 use p3_poseidon::Poseidon;
-use p3_symmetric::compression::CompressionFunctionFromHasher;
-use p3_symmetric::hasher::SerializingHasher32;
+use p3_symmetric::CompressionFunctionFromHasher;
+use p3_symmetric::SerializingHasher32;
 use rand::distributions::Standard;
 use rand::prelude::Distribution;
 use rand::thread_rng;
+use tracing_forest::ForestLayer;
+use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Registry};
 
 #[derive(Parser)]
 struct Cli {
@@ -37,7 +40,7 @@ struct Cli {
 
     /// Stack height (which is also the initial frame pointer value)
     #[arg(long, default_value = "16777216")]
-    stack_height: u32,
+    stack_height: usize,
 }
 
 // TODO: Handle non-unit variants with Clap macro
@@ -95,18 +98,18 @@ enum HashFunction {
 // Univariate types
 type MyDft = Radix2Bowers;
 type FriPCS<MyFriConfig, MyMmcs, Chal> = FriBasedPcs<MyFriConfig, MyMmcs, MyDft, Chal>;
-type MyMmcs<Val, MyHash, MyCompress> = MerkleTreeMmcs<Val, [Val; 8], MyHash, MyCompress>;
+type MyMmcs<Val, MyHash, MyCompress> = FieldMerkleTreeMmcs<Val, MyHash, MyCompress, 8>;
 type Mds16<Val> = CosetMds<Val, 16>;
 type Perm16<Val> = Poseidon<Val, Mds16<Val>, 16, 5>;
 type MyHash<Val> = SerializingHasher32<Val, Keccak256Hash>;
 type MyCompress<Val, MyHash> = CompressionFunctionFromHasher<Val, MyHash, 2, 8>;
 
 fn new_uni_stark_config<
-    Val: Field + PrimeField32 + TwoAdicField,
+    Val: PrimeField32 + TwoAdicField,
     Dom: ExtensionField<Val> + TwoAdicField,
-    PackedDom: PackedField,
-    Challenge: PackedField + ExtensionField<Dom> + ExtensionField<Val> + TwoAdicField,
-    PackedChallenge: PackedField + AbstractExtensionField<PackedDom>,
+    PackedDom: PackedField<Scalar = Dom>,
+    Challenge: ExtensionField<Val> + ExtensionField<Dom> + TwoAdicField,
+    PackedChallenge: PackedField<Scalar = Challenge> + AbstractExtensionField<PackedDom>,
 >(
     options: &UniOptions,
 ) -> impl StarkConfig<Val = Val>
@@ -114,7 +117,7 @@ where
     Standard: Distribution<Val>,
 {
     // TODO: Pass these in as arguments
-    let hash = MyHash::new(Keccak256Hash {});
+    let hash: MyHash<Val> = MyHash::new(Keccak256Hash {});
     let compress = MyCompress::new(hash);
 
     let mmcs = MyMmcs::new(hash, compress);
@@ -125,9 +128,7 @@ where
     let mds16 = Mds16::default();
     let perm16 = Perm16::new_from_rng(4, 22, mds16, &mut thread_rng()); // TODO: Use deterministic RNG
     let challenger = DuplexChallenger::new(perm16);
-    let config = StarkConfigImpl::new(pcs, dft, challenger);
-
-    config
+    StarkConfigImpl::new(pcs, dft, challenger)
 }
 
 fn bench_uni(options: &UniOptions, example_program: ExampleProgram, stack_height: usize) {
@@ -141,7 +142,7 @@ fn bench_uni(options: &UniOptions, example_program: ExampleProgram, stack_height
             let config = new_uni_stark_config::<Val, Dom, Dom, Challenge, PackedChallenge>(options);
             prove_program(example_program, stack_height, config);
         }
-        _ => unimplemented!(),
+        _ => panic!("That set of options is not currently supported"),
     };
 }
 
@@ -176,6 +177,15 @@ where
 }
 
 fn main() {
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
+
+    Registry::default()
+        .with(env_filter)
+        .with(ForestLayer::default())
+        .init();
+
     let args = Cli::parse();
 
     println!("Benchmarking with the following parameters:");
@@ -185,10 +195,10 @@ fn main() {
 
     match args.prover_type {
         ProverType::Univariate(options) => {
-            bench_uni(&options, args.program, 100_000);
+            bench_uni(&options, args.program, args.stack_height);
         }
         ProverType::Multivariate(options) => {
-            bench_multi(&options, args.program, 100_000);
+            bench_multi(&options, args.program, args.stack_height);
         }
     }
 }
