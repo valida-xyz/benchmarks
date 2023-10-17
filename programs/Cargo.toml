@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+seq-macro = "0.3"
+
+valida-assembler = { path = "../../valida/assembler" }
 valida-basic = { path = "../../valida/basic" }
 valida-alu-u32 = { path = "../../valida/alu_u32" }
 valida-bus = { path = "../../valida/bus" }
@@ -12,4 +15,5 @@ valida-derive = { path = "../../valida/derive" }
 valida-machine = { path = "../../valida/machine" }
 valida-memory = { path = "../../valida/memory" }
 valida-range = { path = "../../valida/range" }
+valida-opcodes = { path = "../../valida/opcodes" }
 valida-program = { path = "../../valida/program" }
