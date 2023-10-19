@@ -6,6 +6,7 @@ use valida_benchmark_programs::{
     sudoku::generate_sudoku_program,
 };
 use valida_cpu::MachineWithCpuChip;
+use valida_machine::__internal::p3_commit::ExtensionMmcs;
 use valida_machine::config::{StarkConfig, StarkConfigImpl};
 use valida_machine::{Machine, PrimeField64, ProgramROM};
 use valida_program::MachineWithProgramChip;
@@ -13,16 +14,16 @@ use valida_program::MachineWithProgramChip;
 use p3_baby_bear::BabyBear;
 use p3_challenger::DuplexChallenger;
 use p3_dft::Radix2Bowers;
-use p3_field::{AbstractExtensionField, ExtensionField, PackedField, PrimeField32, TwoAdicField};
+use p3_field::extension::BinomialExtensionField;
+use p3_field::Field;
 use p3_fri::{FriBasedPcs, FriConfigImpl, FriLdt};
 use p3_keccak::Keccak256Hash;
+use p3_ldt::QuotientMmcs;
 use p3_mds::coset_mds::CosetMds;
 use p3_merkle_tree::FieldMerkleTreeMmcs;
 use p3_poseidon::Poseidon;
 use p3_symmetric::CompressionFunctionFromHasher;
 use p3_symmetric::SerializingHasher32;
-use rand::distributions::Standard;
-use rand::prelude::Distribution;
 use rand::thread_rng;
 use tracing_forest::ForestLayer;
 use tracing_subscriber::filter::LevelFilter;
@@ -61,7 +62,7 @@ enum ProverType {
 struct UniOptions {
     #[arg(value_enum, default_value = "baby-bear")]
     base: BaseField,
-    #[arg(value_enum, default_value = "baby-bear")]
+    #[arg(value_enum, default_value = "baby-bear-quintic")]
     extension: ExtField,
     #[arg(value_enum, default_value = "keccak")]
     hash: HashFunction,
@@ -84,7 +85,7 @@ enum BaseField {
 
 #[derive(ValueEnum, Clone, Copy, Debug)]
 enum ExtField {
-    BabyBear,
+    BabyBearQuartic,
     Mersenne31,
 }
 
@@ -95,51 +96,52 @@ enum HashFunction {
     Keccak,
 }
 
-// Univariate types
-type MyDft = Radix2Bowers;
-type FriPCS<MyFriConfig, MyMmcs, Chal> = FriBasedPcs<MyFriConfig, MyMmcs, MyDft, Chal>;
-type MyMmcs<Val, MyHash, MyCompress> = FieldMerkleTreeMmcs<Val, MyHash, MyCompress, 8>;
-type Mds16<Val> = CosetMds<Val, 16>;
-type Perm16<Val> = Poseidon<Val, Mds16<Val>, 16, 5>;
-type MyHash<Val> = SerializingHasher32<Val, Keccak256Hash>;
-type MyCompress<Val, MyHash> = CompressionFunctionFromHasher<Val, MyHash, 2, 8>;
+fn new_baby_bear_keccak_config(options: &UniOptions) -> impl StarkConfig<Val = BabyBear> {
+    type Val = BabyBear;
+    type Domain = Val;
+    type Challenge = BinomialExtensionField<Val, 4>;
+    type PackedChallenge = BinomialExtensionField<<Domain as Field>::Packing, 4>;
 
-fn new_uni_stark_config<
-    Val: PrimeField32 + TwoAdicField,
-    Dom: ExtensionField<Val> + TwoAdicField,
-    PackedDom: PackedField<Scalar = Dom>,
-    Challenge: ExtensionField<Val> + ExtensionField<Dom> + TwoAdicField,
-    PackedChallenge: PackedField<Scalar = Challenge> + AbstractExtensionField<PackedDom>,
->(
-    options: &UniOptions,
-) -> impl StarkConfig<Val = Val>
-where
-    Standard: Distribution<Val>,
-{
-    // TODO: Pass these in as arguments
-    let hash: MyHash<Val> = MyHash::new(Keccak256Hash {});
+    type Mds16 = CosetMds<Val, 16>;
+    let mds16 = Mds16::default();
+
+    type Perm16 = Poseidon<Val, Mds16, 16, 5>;
+    let perm16 = Perm16::new_from_rng(4, 22, mds16, &mut thread_rng()); // TODO: Use deterministic RNG
+
+    type MyHash = SerializingHasher32<Keccak256Hash>;
+    let hash = MyHash::new(Keccak256Hash {});
+
+    type MyCompress = CompressionFunctionFromHasher<Val, MyHash, 2, 8>;
     let compress = MyCompress::new(hash);
 
-    let mmcs = MyMmcs::new(hash, compress);
-    let fri_config = FriConfigImpl::new(options.num_fri_queries, mmcs.clone());
+    type ValMmcs = FieldMerkleTreeMmcs<Val, MyHash, MyCompress, 8>;
+    let val_mmcs = ValMmcs::new(hash, compress);
+
+    type ChallengeMmcs = ExtensionMmcs<Val, Challenge, ValMmcs>;
+    let challenge_mmcs = ChallengeMmcs::new(val_mmcs.clone());
+
+    type Dft = Radix2Bowers;
+    let dft = Dft::default();
+
+    type Challenger = DuplexChallenger<Val, Perm16, 16>;
+
+    type Quotient = QuotientMmcs<Domain, Challenge, ValMmcs>;
+    type MyFriConfig = FriConfigImpl<Val, Domain, Challenge, Quotient, ChallengeMmcs, Challenger>;
+    let fri_config = MyFriConfig::new(options.num_fri_queries, challenge_mmcs);
     let ldt = FriLdt { config: fri_config };
-    let dft = MyDft::default();
-    let pcs = FriPCS::new(dft.clone(), 1, mmcs, ldt);
-    let mds16 = Mds16::default();
-    let perm16 = Perm16::new_from_rng(4, 22, mds16, &mut thread_rng()); // TODO: Use deterministic RNG
+
+    type Pcs = FriBasedPcs<MyFriConfig, ValMmcs, Dft, Challenger>;
+    type MyConfig = StarkConfigImpl<Val, Domain, Challenge, PackedChallenge, Pcs, Challenger>;
+
+    let pcs = Pcs::new(dft, 1, val_mmcs, ldt);
     let challenger = DuplexChallenger::new(perm16);
-    StarkConfigImpl::new(pcs, dft, challenger)
+    MyConfig::new(pcs, challenger)
 }
 
 fn bench_uni(options: &UniOptions, example_program: ExampleProgram, stack_height: usize) {
     match (options.base, options.extension, options.hash) {
-        (BaseField::BabyBear, ExtField::BabyBear, HashFunction::Keccak) => {
-            type Val = BabyBear;
-            type Dom = BabyBear;
-            type Challenge = BabyBear;
-            type PackedChallenge = BabyBear;
-
-            let config = new_uni_stark_config::<Val, Dom, Dom, Challenge, PackedChallenge>(options);
+        (BaseField::BabyBear, ExtField::BabyBearQuartic, HashFunction::Keccak) => {
+            let config = new_baby_bear_keccak_config(options);
             prove_program(example_program, stack_height, config);
         }
         _ => panic!("That set of options is not currently supported"),
